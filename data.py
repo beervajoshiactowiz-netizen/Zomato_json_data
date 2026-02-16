@@ -1,82 +1,83 @@
 import json
-from pprint import pprint
+from datetime import datetime
+
+#empty dictonary to store the data
 new={}
-def inp(json_file):
+
+#load json file
+def input_file(json_file):
     with open(json_file, 'r') as f:
         data = json.load(f)
         return data
 
+#process the json data
 def parser(d):
-    new["restaurant_id"]=d["page_data"]["sections"]["SECTION_BASIC_INFO"]["res_id"]
+    section_info=d["page_data"]["sections"]["SECTION_BASIC_INFO"]
+    section_contact=d["page_data"]["sections"]["SECTION_RES_CONTACT"]
 
-    new["restaurant_name"] = d["page_data"]["sections"]["SECTION_BASIC_INFO"]["name"]
+    new["restaurant_id"]=section_info["res_id"]     #get restaurant id
 
-    new["restaurant_url"] = d["page_data"]["sections"]["SECTION_BASIC_INFO"]["resUrl"]
+    new["restaurant_name"] = section_info["name"]     #get restaurant name
 
-    new["restaurant_contact"]=[d["page_data"]["sections"]["SECTION_RES_CONTACT"]["phoneDetails"]["phoneStr"]]
+    new["restaurant_url"] = section_info["resUrl"]     #get restaurant url
 
+    new["restaurant_contact"]=[section_contact["phoneDetails"]["phoneStr"]]     #get contact no.
+
+    #get license no.
     new["fssai_licence_number"]=d["page_data"]["order"]["menuList"]["fssaiInfo"]["text"].split()[2]
 
+    #get address
     new["address_info"]={}
-    new["address_info"]["full_address"]=d["page_data"]["sections"]["SECTION_RES_CONTACT"]["address"]
-    new["address_info"]["city"]=d["page_data"]["sections"]["SECTION_RES_CONTACT"]["city_name"]
-    new["address_info"]["pincode"] = d["page_data"]["sections"]["SECTION_RES_CONTACT"]["zipcode"]
+    new["address_info"]["full_address"]=section_contact["address"]
+    new["address_info"]["city"]=section_contact["city_name"]
+    new["address_info"]["pincode"] = section_contact["zipcode"]
     try:
-        new["address_info"]["region"] = d["page_data"]["sections"]["SECTION_RES_CONTACT"]["region"]
+        new["address_info"]["region"] = section_contact["region"]
     except KeyError:
-        new["address_info"]["region"]="None"
+        new["address_info"]["region"]=None
     try:
-        new["address_info"]["state"] = d["page_data"]["sections"]["SECTION_RES_CONTACT"]["state"]
+        new["address_info"]["state"] = section_contact["state"]
     except KeyError:
-        new["address_info"]["state"] = "None"
+        new["address_info"]["state"] = None
 
-
+    #get cuisines
+    #initialise empty list
     new["cuisines"]=[]
-    for i in range(len(d["page_data"]["sections"]["SECTION_RES_HEADER_DETAILS"]["CUISINES"])):
-        new["cuisines"].append({"name":d["page_data"]["sections"]["SECTION_RES_HEADER_DETAILS"]["CUISINES"][i]["name"],"url":d["page_data"]["sections"]["SECTION_RES_HEADER_DETAILS"]["CUISINES"][i]["url"]})
+
+    cuisine=d["page_data"]["sections"]["SECTION_RES_HEADER_DETAILS"]["CUISINES"]
+    for i in range(len(cuisine)):
+        new["cuisines"].append({"name":cuisine[i]["name"],"url":cuisine[i]["url"]})
 
 
-    new["timings"]={"monday":{"open":d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"]["opening_hours"][0]["timing"].split()[0],"close":d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"]["opening_hours"][0]["timing"].split()[2]},
-                    "Tuesday": {"open":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[0], "close":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[2]},
-                    "wednesday": {"open":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[0], "close":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[2]},
-                    "Thursday": {"open":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[0], "close":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[2]},
-                    "friday": {"open":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[0], "close":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[2]},
-                    "saturday": {"open":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[0], "close":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[2]},
-                    "sunday": {"open":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[0], "close":
-                                    d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"][
-                                        "opening_hours"][0]["timing"].split()[2]}
-                    }
+    #get timings
+    new["timings"]={}
+    timing=d["page_data"]["sections"]["SECTION_BASIC_INFO"]["timing"]["customised_timings"]["opening_hours"][0]["timing"]
+    days=["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
+
+    parts=[t.strip() for t in timing.split()]
+    open_time=parts[0]
+    close_time=parts[2]
+
+    for day in days:
+        new["timings"][day]={
+            "open":open_time,
+            "close":close_time
+        }
 
 
+    #empty list for menus
     new["menu_categories"]=[]
+    #menus path
+    menus=d["page_data"]["order"]["menuList"]["menus"]
+    for i in range(len(menus)):
+        #categories path
+        categories=menus[i]["menu"]["categories"]
+        for j in range(len(categories)):
+            categories_name=categories[j]["category"]["name"]
 
-    for i in range(len(d["page_data"]["order"]["menuList"]["menus"])):
-        for j in range(len(d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"])):
-            categories_name=d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["name"]
+            #filling blank values by its menu name
             if categories_name=="":
-                categories_name=d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["name"]
+                categories_name=menus[i]["menu"]["name"]
             else:
                 categories_name=categories_name
             category_entry = {
@@ -84,8 +85,10 @@ def parser(d):
                 "items": []
             }
 
-            for k in range(len(d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["items"])):
-                item = d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["items"][k]["item"]
+            #items path
+            items_d=categories[j]["category"]["items"]
+            for k in range(len(items_d)):
+                item = items_d[k]["item"]
                 if item["dietary_slugs"][0]=="veg":
                     is_veg=True
                 else:
@@ -99,16 +102,17 @@ def parser(d):
                 }
 
                 category_entry["items"].append(item_entry)
+            #append the data in empty list
             new["menu_categories"].append(category_entry)
     return new
 
 def convert_to_json(processed_data):
-    with open("ZOMATO_16-02-2026.json","w") as f:
+    with open(f"ZOMATO_{datetime.now().date()}.json","w") as f:
         json.dump(processed_data,f,indent=4)
-
+    print("Data extracted successfully")
 
 
 file=input("enter file name: ")
-d=inp(file)
+d=input_file(file)
 extracted=parser(d)
 convert_to_json(extracted)
