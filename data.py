@@ -75,22 +75,30 @@ def parser(d):
     for i in range(len(d["page_data"]["order"]["menuList"]["menus"])):
         for j in range(len(d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"])):
             categories_name=d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["name"]
+            if categories_name=="":
+                categories_name=d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["name"]
+            else:
+                categories_name=categories_name
+            category_entry = {
+                "category_name": categories_name,
+                "items": []
+            }
+
             for k in range(len(d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["items"])):
-                category_entry = {
-                    "category_name": categories_name,
-                    "items": []
+                item = d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["items"][k]["item"]
+                if item["dietary_slugs"][0]=="veg":
+                    is_veg=True
+                else:
+                    is_veg=False
+                item_entry={
+                    "item_id": item.get("id"),
+                    "item_name": item.get("name"),
+                    "item_slug":item.get("tag_slugs"),
+                    "item_description": item.get("desc"),
+                    "is_veg": is_veg
                 }
-                items=d["page_data"]["order"]["menuList"]["menus"][i]["menu"]["categories"][j]["category"]["items"][k]["item"]
 
-                item_data={
-                    "item_id": items.get("id"),
-                    "item_name": items.get("name"),
-                    "item_slug":items.get("tag_slugs"),
-                    "item_description": items.get("desc"),
-                    "is_veg": items.get("")
-                }
-
-                category_entry["items"].append(item_data)
+                category_entry["items"].append(item_entry)
             new["menu_categories"].append(category_entry)
     return new
 
